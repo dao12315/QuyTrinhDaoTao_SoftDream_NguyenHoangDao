@@ -1,0 +1,331 @@
+<div class="page">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">API Quản lý sinh viên</p>
+      <h1>Quản lý sinh viên</h1>
+      <p>{{ currentUser()?.email }} · {{ currentUser()?.role }}</p>
+    </div>
+
+    <button type="button" class="btn ghost" (click)="logout()">Đăng xuất</button>
+  </header>
+
+  <main class="content">
+    <section class="panel summary-panel">
+      <div>
+        <span>Sinh viên</span>
+        <strong>{{ students.length }}</strong>
+      </div>
+      <div>
+        <span>Môn học</span>
+        <strong>{{ subjects.length }}</strong>
+      </div>
+      <div>
+        <span>Môn đã đăng ký</span>
+        <strong>{{ subjectCount ?? '-' }}</strong>
+      </div>
+      <div>
+        <span>Quyền sửa</span>
+        <strong>{{ canEdit ? 'Teacher' : 'Chỉ xem' }}</strong>
+      </div>
+    </section>
+
+    <p class="message" *ngIf="message">{{ message }}</p>
+
+    <section class="panel lookup-panel">
+      <div class="section-title">
+        <div>
+          <h2>Tra cứu sinh viên</h2>
+          <p>Chọn từ danh sách hoặc nhập mã sinh viên để tải chi tiết, điểm và số môn.</p>
+        </div>
+        <button type="button" class="btn secondary" (click)="loadInitialData()">Tải lại</button>
+      </div>
+
+      <div class="lookup-row">
+        <input
+          name="lookupStudentId"
+          placeholder="Nhập mã sinh viên"
+          [(ngModel)]="lookupStudentId"
+        />
+        <button type="button" class="btn primary" (click)="findStudent()">Tra cứu</button>
+      </div>
+    </section>
+
+    <section class="grid-two">
+      <section class="panel editor">
+        <div class="section-title">
+          <div>
+            <h2>Cập nhật thông tin</h2>
+            <p *ngIf="selectedStudentId">Mã sinh viên: {{ selectedStudentId }}</p>
+            <p *ngIf="!selectedStudentId">Chọn một sinh viên để sửa thông tin.</p>
+          </div>
+        </div>
+
+        <form class="student-form" (ngSubmit)="submitStudentForm()">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="studentId">Mã sinh viên</label>
+              <input id="studentId" name="studentId" [(ngModel)]="formData.studentId" readonly />
+            </div>
+
+            <div class="form-group">
+              <label for="fullName">Họ tên</label>
+              <input id="fullName" name="fullName" [(ngModel)]="formData.fullName" />
+            </div>
+
+            <div class="form-group">
+              <label for="gender">Giới tính</label>
+              <select id="gender" name="gender" [(ngModel)]="formData.gender">
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+                <option value="Khác">Khác</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="dateOfBirth">Ngày sinh</label>
+              <input
+                id="dateOfBirth"
+                type="date"
+                name="dateOfBirth"
+                [(ngModel)]="formData.dateOfBirth"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="className">Lớp</label>
+              <input id="className" name="className" [(ngModel)]="formData.className" />
+            </div>
+
+            <div class="form-group">
+              <label for="course">Khóa</label>
+              <input id="course" name="course" [(ngModel)]="formData.course" />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button
+              type="submit"
+              class="btn primary"
+              [disabled]="savingStudent || !selectedStudentId || !canEdit"
+            >
+              {{ savingStudent ? 'Đang lưu...' : 'Lưu cập nhật' }}
+            </button>
+            <button type="button" class="btn muted" (click)="resetStudentForm()">Bỏ chọn</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel score-panel">
+        <div class="section-title">
+          <div>
+            <h2>Nhập điểm và xem kết quả</h2>
+            <p>Chỉ tài khoản teacher được nhập hoặc sửa điểm.</p>
+          </div>
+        </div>
+
+        <form class="student-form" (ngSubmit)="submitScoreForm()">
+          <div class="form-grid compact">
+            <div class="form-group">
+              <label for="scoreStudentId">Mã sinh viên</label>
+              <input
+                id="scoreStudentId"
+                name="scoreStudentId"
+                [(ngModel)]="scoreForm.studentId"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="scoreSubjectId">Môn học</label>
+              <select
+                id="scoreSubjectId"
+                name="scoreSubjectId"
+                [(ngModel)]="scoreForm.subjectId"
+                (ngModelChange)="onScoreSubjectChange()"
+              >
+                <option *ngFor="let subject of subjects" [value]="subject.subjectId">
+                  {{ subject.subjectId }} - {{ subject.subjectName }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="processScore">Điểm quá trình</label>
+              <input
+                id="processScore"
+                type="number"
+                min="0"
+                max="10"
+                step="0.1"
+                name="processScore"
+                [(ngModel)]="scoreForm.processScore"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="finalScore">Điểm cuối kỳ</label>
+              <input
+                id="finalScore"
+                type="number"
+                min="0"
+                max="10"
+                step="0.1"
+                name="finalScore"
+                [(ngModel)]="scoreForm.finalScore"
+              />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="btn primary" [disabled]="savingScore || !canEdit">
+              {{ savingScore ? 'Đang lưu...' : 'Lưu điểm' }}
+            </button>
+            <button type="button" class="btn secondary" (click)="viewResult()">Xem kết quả</button>
+          </div>
+        </form>
+
+        <p class="result" *ngIf="resultMessage">{{ resultMessage }}</p>
+      </section>
+    </section>
+
+    <section class="grid-two">
+      <section class="panel">
+        <div class="section-title table-title">
+          <div>
+            <h2>Danh sách sinh viên</h2>
+            <p *ngIf="loading">Đang tải dữ liệu...</p>
+          </div>
+        </div>
+
+        <div class="table-wrap" *ngIf="!loading && students.length > 0">
+          <table>
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Mã SV</th>
+                <th>Họ tên</th>
+                <th>Giới tính</th>
+                <th>Ngày sinh</th>
+                <th>Lớp</th>
+                <th>Khóa</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let student of students; let i = index"
+                [class.selected]="student.studentId === selectedStudentId"
+              >
+                <td>{{ i + 1 }}</td>
+                <td>{{ student.studentId }}</td>
+                <td>{{ student.fullName }}</td>
+                <td>{{ student.gender }}</td>
+                <td>{{ student.dateOfBirth }}</td>
+                <td>{{ student.className }}</td>
+                <td>{{ student.course }}</td>
+                <td>
+                  <button type="button" class="btn small" (click)="selectStudent(student)">
+                    Chọn
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="empty" *ngIf="!loading && students.length === 0">
+          Chưa có dữ liệu sinh viên.
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title table-title">
+          <div>
+            <h2>Danh sách môn học</h2>
+            <p>Chọn môn để đưa vào form nhập điểm.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap" *ngIf="subjects.length > 0">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã môn</th>
+                <th>Tên môn</th>
+                <th>Số tiết</th>
+                <th>QT</th>
+                <th>CK</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let subject of subjects"
+                [class.selected]="subject.subjectId === scoreForm.subjectId"
+              >
+                <td>{{ subject.subjectId }}</td>
+                <td>{{ subject.subjectName }}</td>
+                <td>{{ subject.numberOfLessons }}</td>
+                <td>{{ subject.processRate }}</td>
+                <td>{{ subject.finalRate }}</td>
+                <td>
+                  <button type="button" class="btn small blue" (click)="selectSubject(subject)">
+                    Chọn
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="empty" *ngIf="subjects.length === 0">
+          Chưa có dữ liệu môn học.
+        </div>
+      </section>
+    </section>
+
+    <section class="panel">
+      <div class="section-title table-title">
+        <div>
+          <h2>Điểm của sinh viên</h2>
+          <p *ngIf="selectedStudentId">
+            {{ selectedStudent?.fullName }} · {{ subjectCount ?? 0 }} môn đã đăng ký
+          </p>
+          <p *ngIf="!selectedStudentId">Chọn sinh viên để xem bảng điểm.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap" *ngIf="scores.length > 0">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã môn</th>
+              <th>Tên môn</th>
+              <th>Điểm QT</th>
+              <th>Điểm CK</th>
+              <th>Tổng kết</th>
+              <th>Kết quả</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of scores">
+              <td>{{ item.subject.subjectId }}</td>
+              <td>{{ item.subject.subjectName }}</td>
+              <td>{{ item.processScore ?? '-' }}</td>
+              <td>{{ item.finalScore ?? '-' }}</td>
+              <td>{{ item.totalScore ?? '-' }}</td>
+              <td>
+                <span class="status" [class.pass]="item.passed" [class.fail]="item.passed === false">
+                  {{ item.passed === null ? 'Chưa đủ điểm' : item.passed ? 'Qua môn' : 'Trượt' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty" *ngIf="selectedStudentId && scores.length === 0">
+        Sinh viên chưa có điểm hoặc chưa đăng ký môn học.
+      </div>
+    </section>
+  </main>
+</div>

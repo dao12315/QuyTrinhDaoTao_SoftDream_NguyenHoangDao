@@ -1,0 +1,81 @@
+<main class="login-page">
+  <section class="login-panel">
+    <div class="brand">
+      <p>QLSV</p>
+      <h1>{{ mode === 'login' ? 'Đăng nhập' : 'Đăng ký tài khoản' }}</h1>
+    </div>
+
+    <div class="mode-switch" role="tablist" aria-label="Chọn chức năng xác thực">
+      <button
+        type="button"
+        [class.active]="mode === 'login'"
+        (click)="setMode('login')"
+      >
+        Đăng nhập
+      </button>
+      <button
+        type="button"
+        [class.active]="mode === 'register'"
+        (click)="setMode('register')"
+      >
+        Đăng ký
+      </button>
+    </div>
+
+    <form *ngIf="mode === 'login'" class="login-form" (ngSubmit)="submit()">
+      <label for="email">Email</label>
+      <input
+        id="email"
+        type="email"
+        name="email"
+        autocomplete="email"
+        [(ngModel)]="formData.email"
+      />
+
+      <label for="password">Mật khẩu</label>
+      <input
+        id="password"
+        type="password"
+        name="password"
+        autocomplete="current-password"
+        [(ngModel)]="formData.password"
+      />
+
+      <button type="submit" class="primary-action" [disabled]="loading">
+        {{ loading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
+      </button>
+    </form>
+
+    <form *ngIf="mode === 'register'" class="login-form" (ngSubmit)="register()">
+      <label for="registerEmail">Email</label>
+      <input
+        id="registerEmail"
+        type="email"
+        name="registerEmail"
+        autocomplete="email"
+        [(ngModel)]="registerData.email"
+      />
+
+      <label for="registerPassword">Mật khẩu</label>
+      <input
+        id="registerPassword"
+        type="password"
+        name="registerPassword"
+        autocomplete="new-password"
+        [(ngModel)]="registerData.password"
+      />
+
+      <label for="role">Vai trò</label>
+      <select id="role" name="role" [(ngModel)]="registerData.role">
+        <option value="student">Sinh viên</option>
+        <option value="teacher">Giảng viên</option>
+      </select>
+
+      <button type="submit" class="primary-action" [disabled]="loading">
+        {{ loading ? 'Đang đăng ký...' : 'Tạo tài khoản' }}
+      </button>
+    </form>
+
+    <p class="message" *ngIf="message">{{ message }}</p>
+  </section>
+</main>
